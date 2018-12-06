@@ -100,7 +100,7 @@ namespace ConsoleApp2
 
         public Vector3 getAngularVelocity()
         {
-            return tupleToVec3(Vessel.AngularVelocity(refFrame));
+            return tupleToVec3(Vessel.AngularVelocity(ReferenceFrame.CreateHybrid(Vessel.connection, Vessel.ReferenceFrame, Vessel.ReferenceFrame, nonRotatingRefFrame, nonRotatingRefFrame)));
         }
 
         static Vector3 tupleToVec3(Tuple<double, double, double> val)

@@ -18,14 +18,16 @@ namespace ConsoleApp2
         {
             VesselController = vesselController;
             targetDirection = new Vector3(0.0f, 1.0f, 0.0f);
-            orientationPitchContoller = new PercentageDerivativeController(0.835, 1.73, 0.0);
-            orientationYawContoller = new PercentageDerivativeController(0.835, 1.73, 0.0);
+            orientationPitchContoller = new PercentageDerivativeController(3.0, 14.0, 0.0);
+            orientationYawContoller = new PercentageDerivativeController(3.0, 14.0, 0.0);
+            orientationRollContoller = new PercentageDerivativeController(1.0, 14.0, 0.0);
         }
 
         VesselController VesselController;
         Vector3 targetDirection;
         PercentageDerivativeController orientationPitchContoller;
         PercentageDerivativeController orientationYawContoller;
+        PercentageDerivativeController orientationRollContoller;
 
         public void setTargetDirection(Vector3 dir)
         {
@@ -54,14 +56,21 @@ namespace ConsoleApp2
             var shipforward = Vector3.Transform(new Vector3(0.0f, 1.0f, 0.0f), quat);
 
             var fdir = shipforward + targetDirection * 1.1f;
+            fdir.Normalize();
 
             float xt = -Vector3.Dot(shipup, fdir);
             float yt = -Vector3.Dot(shipleft, fdir);
+            float zt = -Vector3.Dot(shipup, Vector3.UnitX);
 
             //VesselController.setYaw((float)clamp(xt * 0.1, -0.1, 0.1));
             //VesselController.setPitch((float)clamp(-yt * 0.1, -0.1, 0.1));
-              VesselController.setYaw((float)clamp(orientationYawContoller.Calculate(0.0, xt), -1.0, 1.0));
-             VesselController.setPitch((float)clamp(-orientationPitchContoller.Calculate(0.0, yt), -1.0, 1.0));
+            VesselController.setYaw((float)clamp(orientationYawContoller.Calculate(0.0, xt), -1.0, 1.0));
+            VesselController.setPitch((float)clamp(-orientationPitchContoller.Calculate(0.0, yt), -1.0, 1.0));
+            VesselController.setRoll((float)clamp(orientationRollContoller.Calculate(0.0, zt), -1.0, 1.0));
+            //  Console.WriteLine(VesselController.getAngularVelocity().X);
+            //  Console.WriteLine(VesselController.getAngularVelocity().Y);
+            //  Console.WriteLine(VesselController.getAngularVelocity().Z);
+            //  Console.WriteLine(" ");
         }
     }
 }

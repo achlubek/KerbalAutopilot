@@ -95,8 +95,9 @@ namespace ConsoleApp2
                  }*/
                 VesselDirectionController VDC = new VesselDirectionController(VC);
                 var target = new Vector3(160414.82635621f, -525.786447726701f, -578229.703053695f);
+                //var target = new Vector3(159779.933394297f, -1018.32365380228f, -578408.741371887f);
                 // var target = new Vector3(159779.889438512f, -1018.08311045618f, -578408.695050623f);
-                //var target = new Vector3(161270.085206315f, -397.490824863315f, -577920.690812992f);
+               // var target = new Vector3(161270.085206315f, -397.490824863315f, -577920.690812992f);
                  LandOnTargetTask landTask = new LandOnTargetTask(VC, VDC, F, target);
                 /*while (true)
                 {
@@ -121,8 +122,8 @@ namespace ConsoleApp2
                     ascend.update();
                     System.Threading.Thread.Sleep(30);
                 }*/
-                //List<IFlightTask> tasks = new List<IFlightTask> { stageTask, ascendStraight, waitTask, stageTask, landTask };
-                List<IFlightTask> tasks = new List<IFlightTask> { stageTask, ascendStraight, waitTask, landTask };
+                List<IFlightTask> tasks = new List<IFlightTask> { stageTask, ascendHalf, waitTask, stageTask, landTask };
+               // List<IFlightTask> tasks = new List<IFlightTask> {  landTask };
                 int activeTask = 0;
                 while (true)
                 {

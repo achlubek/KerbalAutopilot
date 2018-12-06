@@ -53,11 +53,14 @@ namespace ConsoleApp2
             double currentVelocity = VesselController.getOrbitalVelocity().Length();
             double shipAcceleration = VesselController.getEnginesAcceleration();
             double timeOfManouver = (velocityNeeded - currentVelocity) / shipAcceleration;
+            var velocityNormalized = VesselController.getVelocity();
+            velocityNormalized.Normalize();
             float mixer = (float)(apo / Altitude);
             var downDirection = VesselController.getGravity();
             downDirection.Normalize();
             var tangential = Vector3.Transform(-downDirection, Quaternion.RotationYawPitchRoll(MathUtil.DegreesToRadians(-25.0f), 0.0f, 0.0f));
             var direction = -downDirection * (1.0f - mixer) + tangential * (mixer);
+            direction.Normalize();
             VesselDirectionController.setTargetDirection(direction);
 
             if(currentStage == Stage.Ascend)

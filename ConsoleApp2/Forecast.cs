@@ -58,6 +58,65 @@ namespace ConsoleApp2
             };
         }
 
+        public LandingPrediction predictLandPositionWithBraking()
+        {
+            VesselController.updateBodyPosition();
+            var currentPosition = VesselController.getPosition();
+            var currentVelocity = VesselController.getVelocity();
+            float stepsize = 0.01f;
+            float time = 0.0f;
+            bool isVelocityDecreasing = true;
+            double lastVelocityMagnitude = currentVelocity.Length();
+            while (VesselController.getAltitudeAtPoint(currentPosition) > 0 && isVelocityDecreasing)
+            {
+                var vesselThrust = VesselController.getEnginesAcceleration();
+                var normalizedVelocity = currentVelocity;
+                normalizedVelocity.Normalize();
+                currentPosition += currentVelocity * stepsize;
+                currentVelocity += VesselController.getGravityAtPoint(currentPosition) * stepsize;
+                currentVelocity += (float)vesselThrust * -normalizedVelocity * stepsize;
+                time += stepsize;
+                isVelocityDecreasing = currentVelocity.Length() < lastVelocityMagnitude;
+                lastVelocityMagnitude = currentVelocity.Length();
+            }
+            while (VesselController.getAltitudeAtPoint(currentPosition) > 0)
+            {
+                currentPosition += currentVelocity * stepsize;
+                currentVelocity += VesselController.getGravityAtPoint(currentPosition) * stepsize;
+                time += stepsize;
+            }
+            return new LandingPrediction()
+            {
+                Position = currentPosition,
+                Velocity = currentVelocity,
+                TimeLeft = time
+            };
+        }
+
+        public double predictImmediateRetrogradeBurnStopAltitude()
+        {
+            VesselController.updateBodyPosition();
+            var currentPosition = VesselController.getPosition();
+            var currentVelocity = VesselController.getVelocity();
+            float stepsize = 0.01f;
+            float time = 0.0f;
+            bool isVelocityDecreasing = true;
+            double lastVelocityMagnitude = currentVelocity.Length();
+            while (isVelocityDecreasing)
+            {
+                var vesselThrust = VesselController.getEnginesAcceleration();
+                var normalizedVelocity = currentVelocity;
+                normalizedVelocity.Normalize();
+                currentPosition += currentVelocity * stepsize;
+                currentVelocity += VesselController.getGravityAtPoint(currentPosition) * stepsize;
+                currentVelocity += (float)vesselThrust * -normalizedVelocity * stepsize;
+                time += stepsize;
+                isVelocityDecreasing = currentVelocity.Length() < lastVelocityMagnitude;
+                lastVelocityMagnitude = currentVelocity.Length();
+            }
+            return VesselController.getAltitudeAtPoint(currentPosition);
+        }
+
         public ApoapsisPeriapsisPrediction predictOrbit()
         {
             VesselController.setReferenceFrameType(VesselController.ReferenceFrameType.ClosestBodyCenter);
@@ -121,30 +180,6 @@ namespace ConsoleApp2
                 TimeToApoapsis = timeToApo,
                 TimeToPeriapsis = timeToPeri
             };
-        }
-
-        public double predictImmediateRetrogradeBurnStopAltitude()
-        {
-            VesselController.updateBodyPosition();
-            var currentPosition = VesselController.getPosition();
-            var currentVelocity = VesselController.getVelocity();
-            float stepsize = 0.01f;
-            float time = 0.0f;
-            bool isVelocityDecreasing = true;
-            double lastVelocityMagnitude = currentVelocity.Length();
-            while (isVelocityDecreasing)
-            {
-                var vesselThrust = VesselController.getEnginesAcceleration();
-                var normalizedVelocity = currentVelocity;
-                normalizedVelocity.Normalize();
-                currentPosition += currentVelocity * stepsize;
-                currentVelocity += VesselController.getGravityAtPoint(currentPosition) * stepsize;
-                currentVelocity += (float)vesselThrust * -normalizedVelocity * stepsize;
-                time += stepsize;
-                isVelocityDecreasing = currentVelocity.Length() < lastVelocityMagnitude;
-                lastVelocityMagnitude = currentVelocity.Length();
-            }
-            return VesselController.getAltitudeAtPoint(currentPosition);
         }
     }
 }
