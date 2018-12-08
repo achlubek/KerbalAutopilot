@@ -14,11 +14,12 @@ namespace ConsoleApp2
 {
     class VesselController
     {
-        public VesselController(Flight flight, Vessel vessel)
+        public VesselController(KRPC.Client.Services.SpaceCenter.Service spaceCenter, Flight flight, Vessel vessel)
         {
             Flight = flight;
             Vessel = vessel;
             Orbit = Vessel.Orbit;
+            SpaceCenter = spaceCenter;
             refFrame = Orbit.Body.ReferenceFrame;
             nonRotatingRefFrame = Orbit.Body.NonRotatingReferenceFrame;
             Body = Orbit.Body;
@@ -28,16 +29,19 @@ namespace ConsoleApp2
 
         Flight Flight;
         Vessel Vessel;
+        KRPC.Client.Services.SpaceCenter.Service SpaceCenter;
         Orbit Orbit;
         ReferenceFrame refFrame;
         ReferenceFrame nonRotatingRefFrame;
         CelestialBody Body;
         Vector3 BodyPosition;
         double bodyRadius;
+        double atmosphereRadius;
         float surfaceGravity;
         float vesselMass;
         float vesselAvailableThrust;
         float thrustLimit;
+        float dragCoefficient;
         ReferenceFrameType referenceFrameType = ReferenceFrameType.ClosestBodySurface;
 
         public enum ReferenceFrameType
@@ -50,14 +54,24 @@ namespace ConsoleApp2
         {
             referenceFrameType = type;
         }
-
+        
         public void updateBodyPosition()
         {
             BodyPosition = tupleToVec3(Body.Position(refFrame));
             bodyRadius = getDistanceFromBodyCenter() - Flight.SurfaceAltitude;
+            atmosphereRadius = Body.AtmosphereDepth;
             surfaceGravity = Body.SurfaceGravity;
             vesselMass = Vessel.Mass;
             vesselAvailableThrust = Vessel.AvailableThrust;
+            
+            var cd = Flight.DragCoefficient;
+            var cl = Flight.LiftCoefficient;
+            var bc = Flight.BallisticCoefficient;
+            var area = Vessel.Mass / (bc * cd);
+            //lift = cl * area * dp; // mul to lift direction
+            float pressureAtSea = (float)(Body.PressureAt(0) * (1.225 / 101325.0));
+            dragCoefficient = pressureAtSea; // mul to drag direction
+
             refFrame = referenceFrameType == ReferenceFrameType.ClosestBodySurface ? Orbit.Body.ReferenceFrame : Orbit.Body.NonRotatingReferenceFrame;
             nonRotatingRefFrame = Orbit.Body.NonRotatingReferenceFrame;
         }
@@ -144,11 +158,25 @@ namespace ConsoleApp2
             return tupleToVec3(Vessel.Velocity(nonRotatingRefFrame));
         }
 
+        public void addPolygon()
+        {
+        }
+
         public Vector3 getGravity()
         {
             var gravityDirection = BodyPosition - getPosition();
             gravityDirection.Normalize();
             return surfaceGravity * gravityDirection;
+        }
+
+        public double getClosestBodyAtmosphereHeight()
+        {
+            return atmosphereRadius;
+        }
+
+        public double getDrag()
+        {
+            return dragCoefficient;
         }
 
         public double calculateGravityStrengthAtAltitude(double altitude)
@@ -199,7 +227,7 @@ namespace ConsoleApp2
         public double getEnginesAcceleration()
         {
             double gravity = surfaceGravity;
-            return ((vesselAvailableThrust * thrustLimit) / (vesselMass * gravity)) * gravity;
+            return ((vesselAvailableThrust) / (vesselMass * gravity)) * gravity;
         }
 
         public double getEnginesAccelerationPrediction(double percentOfPower)

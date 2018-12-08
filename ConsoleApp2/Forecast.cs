@@ -37,6 +37,21 @@ namespace ConsoleApp2
 
         VesselController VesselController;
 
+        private double calculateDynamicPressure(double altitude, double velocityMagnitude)
+        {
+            double airDensity = getAirDensityPercentage(altitude);
+            if (airDensity < 0.0 || airDensity > 1.0) airDensity = 0.0;
+            return 0.5f * airDensity * velocityMagnitude * velocityMagnitude * 0.0001;
+        }
+
+        private double getAirDensityPercentage(double altitude)
+        {
+            double atmosphereHeight = (double)VesselController.getClosestBodyAtmosphereHeight();
+            if (atmosphereHeight < 0.0) return 0.0;
+            double percentage = altitude / atmosphereHeight;
+            return 1.0 - Math.Pow(percentage, 0.333);
+        }
+
         public LandingPrediction predictLandPosition()
         {
             VesselController.updateBodyPosition();
@@ -46,7 +61,11 @@ namespace ConsoleApp2
             float time = 0.0f;
             while (VesselController.getAltitudeAtPoint(currentPosition) > 0)
             {
+                var normalizedVelocity = currentVelocity;
+                normalizedVelocity.Normalize();
                 currentPosition += currentVelocity * stepsize;
+                currentVelocity += -normalizedVelocity * stepsize * (float)VesselController.getDrag() 
+                    * (float)calculateDynamicPressure(VesselController.getAltitudeAtPoint(currentPosition), currentVelocity.Length());
                 currentVelocity += VesselController.getGravityAtPoint(currentPosition) * stepsize;
                 time += stepsize;
             }
@@ -73,15 +92,21 @@ namespace ConsoleApp2
                 var normalizedVelocity = currentVelocity;
                 normalizedVelocity.Normalize();
                 currentPosition += currentVelocity * stepsize;
-                currentVelocity += VesselController.getGravityAtPoint(currentPosition) * stepsize;
                 currentVelocity += (float)vesselThrust * -normalizedVelocity * stepsize;
+                currentVelocity += -normalizedVelocity * stepsize * (float)VesselController.getDrag()
+                    * (float)calculateDynamicPressure(VesselController.getAltitudeAtPoint(currentPosition), currentVelocity.Length());
+                currentVelocity += VesselController.getGravityAtPoint(currentPosition) * stepsize;
                 time += stepsize;
                 isVelocityDecreasing = currentVelocity.Length() < lastVelocityMagnitude;
                 lastVelocityMagnitude = currentVelocity.Length();
             }
             while (VesselController.getAltitudeAtPoint(currentPosition) > 0)
             {
+                var normalizedVelocity = currentVelocity;
+                normalizedVelocity.Normalize();
                 currentPosition += currentVelocity * stepsize;
+                currentVelocity += -normalizedVelocity * stepsize * (float)VesselController.getDrag()
+                    * (float)calculateDynamicPressure(VesselController.getAltitudeAtPoint(currentPosition), currentVelocity.Length());
                 currentVelocity += VesselController.getGravityAtPoint(currentPosition) * stepsize;
                 time += stepsize;
             }
@@ -108,8 +133,10 @@ namespace ConsoleApp2
                 var normalizedVelocity = currentVelocity;
                 normalizedVelocity.Normalize();
                 currentPosition += currentVelocity * stepsize;
-                currentVelocity += VesselController.getGravityAtPoint(currentPosition) * stepsize;
                 currentVelocity += (float)vesselThrust * -normalizedVelocity * stepsize;
+                currentVelocity += -normalizedVelocity * stepsize * (float)VesselController.getDrag()
+                    * (float)calculateDynamicPressure(VesselController.getAltitudeAtPoint(currentPosition), currentVelocity.Length());
+                currentVelocity += VesselController.getGravityAtPoint(currentPosition) * stepsize;
                 time += stepsize;
                 isVelocityDecreasing = currentVelocity.Length() < lastVelocityMagnitude;
                 lastVelocityMagnitude = currentVelocity.Length();

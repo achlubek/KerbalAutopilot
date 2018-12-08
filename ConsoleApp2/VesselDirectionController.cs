@@ -20,7 +20,7 @@ namespace ConsoleApp2
             targetDirection = new Vector3(0.0f, 1.0f, 0.0f);
             orientationPitchContoller = new PercentageDerivativeController(3.0, 14.0, 0.0);
             orientationYawContoller = new PercentageDerivativeController(3.0, 14.0, 0.0);
-            orientationRollContoller = new PercentageDerivativeController(1.0, 14.0, 0.0);
+            orientationRollContoller = new PercentageDerivativeController(0.4, 4.0, 0.0);
         }
 
         VesselController VesselController;
