@@ -95,11 +95,14 @@ namespace ConsoleApp2
                    //  System.Threading.Thread.Sleep(30);
                  }*/
                 VesselDirectionController VDC = new VesselDirectionController(VC);
-                //var target = new Vector3(160414.82635621f, -525.786447726701f, -578229.703053695f);
-                var target = new Vector3(159779.933394297f, -1018.32365380228f, -578408.741371887f);
-                 //var target = new Vector3(159779.889438512f, -1018.08311045618f, -578408.695050623f);
-               // var target = new Vector3(161270.085206315f, -397.490824863315f, -577920.690812992f);
-                 LandOnTargetTask landTask = new LandOnTargetTask(VC, VDC, F, target);
+                var target = new Vector3(160414.82635621f, -525.786447726701f, -578229.703053695f); // ksc launchpad
+                //var target = new Vector3(159779.933394297f, -1018.32365380228f, -578408.741371887f);
+                //  var target = new Vector3(159779.889438512f, -1018.08311045618f, -578408.695050623f); // 
+                //var target = new Vector3(161270.085206315f, -397.490824863315f, -577920.690812992f); // barka
+                // ksc near hangar {(159172,516713709, -657,912078857422, -578571,718215224)}
+                //var target = new Vector3(159172.516713709f, -657.912078857422f, -578571.718215224f);
+
+                LandOnTargetTask landTask = new LandOnTargetTask(VC, VDC, F, target);
                 /*while (true)
                 {
                     landTask.update();
@@ -118,13 +121,15 @@ namespace ConsoleApp2
                 AscendStraightUpTask ascendStraight = new AscendStraightUpTask(VC, VDC, F, 75000);
                 WaitForAltitudeTask waitTask = new WaitForAltitudeTask(VC, VDC, F, 70000);
                 StageTask stageTask = new StageTask(VC);
+                MaintainVerticalVelocityTask maintainVerticalVelocityTask = new MaintainVerticalVelocityTask(VC, VDC, 150.0f);
                 /*while (true)
                 {
                     ascend.update();
                     System.Threading.Thread.Sleep(30);
                 }*/
-               // List<IFlightTask> tasks = new List<IFlightTask> { stageTask, ascendHalf, waitTask, stageTask, landTask };
+                // List<IFlightTask> tasks = new List<IFlightTask> { stageTask, ascendHalf, waitTask, stageTask, landTask };
                 List<IFlightTask> tasks = new List<IFlightTask> {  landTask };
+               // List<IFlightTask> tasks = new List<IFlightTask> { maintainVerticalVelocityTask };
                 int activeTask = 0;
                 while (true)
                 {
@@ -132,7 +137,7 @@ namespace ConsoleApp2
                     bool completed = task.update();
                     if (completed) activeTask++;
                     if (activeTask >= tasks.Count) break;
-                    System.Threading.Thread.Sleep(30);
+                    System.Threading.Thread.Sleep(10);
                 }
             }
         }

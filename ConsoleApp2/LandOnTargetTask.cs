@@ -20,7 +20,7 @@ namespace ConsoleApp2
             VesselDirectionController = vesselDirectionController;
             Forecast = forecast;
             Target = target;
-            landingSpeedPID = new PercentageDerivativeController(0.2, 1.5, 0.0);
+            landingSpeedPID = new PercentageDerivativeController(1.0, 0.0, 0.0);
             correctionsPID = new PercentageDerivativeControllerVec3(10.6f, 2.6f, 0.0f);
         }
 
@@ -99,7 +99,7 @@ namespace ConsoleApp2
             var targetRelativeNormalized = targetRelative;
             targetRelativeNormalized.Normalize();
 
-            var desiredDirection = -vesselVelocityNormalized - targetRelativeNormalized * 0.58f * Math.Min(1.0f, targetRelative.Length() * 0.015f);
+            var desiredDirection = -vesselVelocityNormalized;// - targetRelativeNormalized * 0.58f * Math.Min(1.0f, targetRelative.Length() * 0.015f);
 
             desiredDirection.Normalize();
             VesselDirectionController.setTargetDirection(desiredDirection);
@@ -117,7 +117,7 @@ namespace ConsoleApp2
             var targetRelativeNormalized = targetRelative;
             targetRelativeNormalized.Normalize();
 
-            var desiredDirection = -vesselVelocityNormalized - targetRelativeNormalized * 0.58f * Math.Min(1.0f, targetRelative.Length() * 0.015f);
+            var desiredDirection = -vesselVelocityNormalized - targetRelativeNormalized * 0.88f * Math.Min(1.0f, targetRelative.Length() * 0.015f);
 
             desiredDirection.Normalize();
             VesselDirectionController.setTargetDirection(desiredDirection);
@@ -160,7 +160,7 @@ namespace ConsoleApp2
             var targetRelative = Target - landingPrediction.Position;
             var targetRelativeNormalized = targetRelative;
             targetRelativeNormalized.Normalize();
-            var correction = clamp(correctionsPID.Calculate(Vector3.Zero, targetRelative * 0.016f), -1.0, 1.0);
+            var correction = clamp(correctionsPID.Calculate(Vector3.Zero, targetRelative * 0.010f), -1.0, 1.0);
 
             var desiredDirection = -vesselVelocityNormalized - correction * 0.3f;
             desiredDirection.Normalize();
@@ -182,57 +182,53 @@ namespace ConsoleApp2
             var vesselVelocityNormalized = vesselVelocity;
             vesselVelocityNormalized.Normalize();
 
-            double velocityValue = vesselVelocity.Length();
-            float mixer = (float)clamp((velocityValue - 150.0) * 0.05, -1.0, 1.0);
 
-            //var desiredDirection = -vesselVelocityNormalized - mixer * targetRelativeNormalized * 0.78f * Math.Min(1.0f, targetRelative.Length() * 0.0065f);
-            // var desiredDirection = -vesselVelocityNormalized + targetRelativeNormalized * 0.8f * Math.Min(1.0f, targetRelative.Length() * 0.03f);
+            var altitude = VesselController.getAltitude();
+            var targetAltitude = VesselController.getAltitudeAtPoint(Target);
+            altitude -= targetAltitude;
 
-            var desiredDirection = -vesselVelocityNormalized + targetRelativeNormalized * 0.38f * Math.Min(1.0f, targetRelative.Length() * 0.0225f);
-            if (vesselVelocity.Length() < 25.0)
+            float tiltMultiplier = 0.38f;
+            float relativeMultiplier = 0.0125f;
+            if (altitude < 7000)
+            {
+                tiltMultiplier = 0.18f;
+                relativeMultiplier = 0.0225f;
+            }
+            if (altitude < 5000)
+            {
+                tiltMultiplier = 0.08f;
+                relativeMultiplier = 0.0825f;
+            }
+            if (altitude < 2500)
+            {
+                tiltMultiplier = 0.0f;
+            }
+
+            var desiredDirection = -vesselVelocityNormalized + targetRelativeNormalized * tiltMultiplier * Math.Min(1.0f, targetRelative.Length() * relativeMultiplier);
+            if (vesselVelocity.Length() < 15.0)
             {
                 bool upsidedown = Vector3.Dot(downDirection, vesselVelocityNormalized) < 0.0;
-                desiredDirection = -(upsidedown  ? downDirection : vesselVelocityNormalized) + targetRelativeNormalized * 0.10f * Math.Min(1.0f, targetRelative.Length() * 0.0225f);
+                desiredDirection = -(upsidedown ? downDirection : vesselVelocityNormalized);// + targetRelativeNormalized * 0.10f * Math.Min(1.0f, targetRelative.Length() * 0.0225f);
             }
 
             VesselDirectionController.setTargetDirection(desiredDirection);
+            
+            var velocity = Vector3.Dot(vesselVelocity, -downDirection);
+            
+            var pidCalculatedThrottle = landingSpeedPID.Calculate(-altitude * 0.06f - 5.0f, velocity);
+            //Console.WriteLine("PID Result : {0}", pidCalculatedThrottle);
 
-            if (brakeAltitudePrediction <= 0.0) // VesselController.getAltitude() * 0.2f + 4.0f)
-            {
-                //VesselController.setThrottle(clamp(1.0f * vesselVelocity.Length() * 0.01f, 0.0, 1.0));
-                //VesselController.setThrottle(1.0f);
-                brakingStarted = true;
-            }
-            else
-            {
-                //VesselController.setThrottle(VesselController.getThrottle() * 0.99f);
-            }
-            if (brakingStarted)
-            {
-                double hoverPercentage = predictThrustPercentageForAcceleration(VesselController.getGravity().Length());
-                var targetDescendVelocity = 5.0f + VesselController.getAltitude() * 0.049f;
-                if(targetRelative.Length() > 25.0f)
-                {
-                 //   targetDescendVelocity = 0.0f;
-                }
-                double val = Vector3.Dot(downDirection, vesselVelocity) - targetDescendVelocity;// - landingSpeedPID.Calculate(17.0f, vesselVelocity.Length());
-                if (brakeAltitudePrediction <= 0.0) val = 1.0;
-                // if (vesselVelocity.Length() > VesselController.getAltitude() * 0.2f + 5.0) val = 1.0;
-                if (Vector3.Dot(downDirection, vesselVelocity) <= 0.0) val = 0.0;
-                VesselController.setThrottle(clamp(val, 0.0, 1.0));
-            }
-            if(vesselVelocity.Length() < 60.0)
-            {
-                //setAcceleration(VesselController.getGravity().Length() * 2.0);
-                //    VesselController.setThrottle(0.0f);
-            }
+            double hoverPercentage = predictThrustPercentageForAcceleration(VesselController.getGravity().Length()) * 2.0 - 1.0;
+
+            pidCalculatedThrottle -= hoverPercentage;
+
+            VesselController.setThrottle(clamp(pidCalculatedThrottle, -1.0, 1.0) * 0.5 + 0.5);
 
             if (VesselController.getAltitude() < 500)
             {
                 VesselController.setLandingGearState(true);
             }
-
-
+            
             Console.WriteLine("[Landing burn] Prediction mismatch {0} Brake prediction {1}", targetRelative.Length(), brakeAltitudePrediction);
         }
 
@@ -268,12 +264,12 @@ namespace ConsoleApp2
             {
                 currentStage = Stage.BallisticDescend;
             }
-            else if (currentStage == Stage.BallisticDescend && altitude < 25000)
+            else if (currentStage == Stage.BallisticDescend && (altitude < 25000 || velocity > 1000))
             {
                 VesselController.setThrustPercentage(1.0f);
                 currentStage = Stage.ReentryBurn;
             }
-            else if (currentStage == Stage.ReentryBurn && velocity < 400)
+            else if (currentStage == Stage.ReentryBurn && velocity < 550)
             {
                 VesselController.setThrustPercentage(0.5f);
                 currentStage = Stage.BallisticDescend2;
